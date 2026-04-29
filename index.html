@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto-Mikro | Mikrotremor Analysis</title>
+    <meta name="description"
+        content="Minimalist microtremor data analysis tool with interactive map and file processing.">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="app-container">
+
+        <!-- Header -->
+        <header class="main-header">
+            <h1 class="title">Auto-Mikro</h1>
+        </header>
+
+        <!-- Main Content -->
+        <main class="content-wrapper">
+            <!-- Map Section -->
+            <section class="map-section">
+                <div class="map-frame">
+                    <div id="map"></div>
+                </div>
+            </section>
+
+            <!-- Controls Section -->
+            <section class="controls-section">
+                <!-- Coordinates -->
+                <div class="control-group coords-group">
+                    <div class="input-wrapper">
+                        <label for="lat">Latitude</label>
+                        <input type="text" id="lat" placeholder="-6.914744">
+                    </div>
+                    <div class="input-wrapper">
+                        <label for="lng">Longitude</label>
+                        <input type="text" id="lng" placeholder="107.609810">
+                    </div>
+                </div>
+
+                <!-- Keterangan Lokasi -->
+                <div class="control-group location-group">
+                    <div class="input-wrapper">
+                        <label for="keterangan">KETERANGAN LOKASI</label>
+                        <textarea id="keterangan" rows="3"
+                            placeholder="*Berikan informasi mengenai lokasi pengukuran jika ada"></textarea>
+                    </div>
+                </div>
+
+                <!-- Upload Mode Toggle -->
+                <div class="control-group mode-group">
+                    <div class="mode-toggle">
+                        <button type="button" class="mode-btn active" id="mode-direct-btn" data-mode="direct">
+                            <span class="mode-icon">📄</span>
+                            <span class="mode-label">File Seismik</span>
+                            <span class="mode-desc">mseed, saf, sac, gcf, peer</span>
+                        </button>
+                        <button type="button" class="mode-btn" id="mode-convert-btn" data-mode="convert">
+                            <span class="mode-icon">🔄</span>
+                            <span class="mode-label">Seismophile</span>
+                            <span class="mode-desc">bin + json → mseed</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- File Upload: Mode 1 (Direct) -->
+                <div class="control-group file-group" id="upload-direct">
+                    <label for="file-upload" class="file-wrapper" id="file-wrapper" style="display: block;">
+                        <div class="file-label">Upload File Mikrotremor</div>
+                        <input type="file" id="file-upload">
+                        <div id="file-name-display">File mikrotremor belum ada</div>
+                    </label>
+                </div>
+
+                <!-- File Upload: Mode 2 (Convert bin + json) -->
+                <div class="control-group file-group" id="upload-convert" style="display: none;">
+                    <label for="bin-upload" class="file-wrapper file-wrapper-dual" id="bin-wrapper">
+                        <div class="file-label">Upload File .bin</div>
+                        <input type="file" id="bin-upload" accept=".bin">
+                        <div id="bin-name-display">File .bin belum ada</div>
+                    </label>
+                    <label for="json-upload" class="file-wrapper file-wrapper-dual" id="json-wrapper">
+                        <div class="file-label">Upload File .json</div>
+                        <input type="file" id="json-upload" accept=".json">
+                        <div id="json-name-display">File .json belum ada</div>
+                    </label>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="control-group action-group">
+                    <button id="tutorial-btn" class="tutorial-btn">
+                        Tutorial
+                    </button>
+                    <button id="reset-btn" class="reset-btn">
+                        Reset
+                    </button>
+                    <button id="run-btn" class="run-btn">
+                        <span class="btn-text">Olah Data</span>
+                    </button>
+                </div>
+
+                <!-- HVSR Graph Container -->
+                <div class="control-group graph-group" id="hvsr-graph-container">
+                    <div class="graph-wrapper" id="graph-wrapper">
+                        <div class="graph-placeholder" id="graph-placeholder">
+                            <span class="graph-placeholder-icon">📊</span>
+                            <span>Grafik HVSR akan muncul di sini</span>
+                        </div>
+                        <img id="hvsr-plot" class="hvsr-plot-img" src="" alt="HVSR Curve" style="display:none;"
+                            title="Klik untuk memperbesar">
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Output section (Moved to bottom) -->
+        <section class="output-section">
+            <div class="output-wrapper">
+                <h3>Hasil</h3>
+                <div id="output-text" class="output-content">
+                    <!-- Hasil akan muncul di sini -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Zoom Modal Overlay -->
+        <div id="zoom-modal" class="zoom-modal">
+            <div class="zoom-modal-backdrop"></div>
+            <div class="zoom-modal-content">
+                <button class="zoom-close-btn" id="zoom-close-btn">&times;</button>
+                <img id="zoom-img" class="zoom-img" src="" alt="HVSR Curve Zoomed">
+            </div>
+        </div>
+
+        <!-- Tutorial Modal Overlay -->
+        <div id="tutorial-modal" class="tutorial-modal">
+            <div class="tutorial-modal-backdrop" id="tutorial-backdrop"></div>
+            <div class="tutorial-modal-content">
+                <button class="tutorial-close-btn" id="tutorial-close-btn">&times;</button>
+                <h2>Tutorial Penggunaan Aplikasi</h2>
+                <div class="tutorial-step">
+                    <span class="step-num">1</span>
+                    <p>Masukkan <strong>koordinat</strong> lokasi pengukuran (Latitude dan Longitude) bisa klik pada
+                        peta atau tuliskan pada kolom koordinat.</p>
+                </div>
+                <div class="tutorial-step">
+                    <span class="step-num">2</span>
+                    <p>Isi <strong>keterangan lokasi</strong> jika diperlukan (opsional).</p>
+                </div>
+                <div class="tutorial-step">
+                    <span class="step-num">3</span>
+                    <p>Pilih mode upload: <strong>File Seismik</strong> (mseed, dll) atau <strong>Seismophile</strong>
+                        (bin + json), lalu <strong>Upload File Mikrotremor</strong>.</p>
+                </div>
+                <div class="tutorial-step">
+                    <span class="step-num">4</span>
+                    <p>Klik tombol <strong>Olah Data</strong> untuk melihat hasil grafik HVSR dan interpretasi.</p>
+                </div>
+
+                <h3 class="tutorial-demo-title">File Demo (Download)</h3>
+                <p class="tutorial-demo-desc">Gunakan file berikut pada koordinat(-7.37564,107.49781) untuk mencoba
+                    aplikasi:</p>
+                <div class="tutorial-demo-links">
+                    <a href="/LOG-3.mseed" download class="demo-link">📄 LOG-3.mseed</a>
+                    <a href="/LOG-3.json" download class="demo-link">📄 LOG-3.json</a>
+                    <a href="/LOG-3.bin" download class="demo-link">📄 LOG-3.bin</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- App Logic -->
+    <script src="script.js"></script>
+</body>
+
+</html>
