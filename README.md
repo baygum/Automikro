@@ -4,7 +4,7 @@ Auto-Mikro adalah aplikasi berbasis web untuk mengolah data mikrotremor mengguna
 
 ---
 
-## 🛠️ Persiapan Sistem
+## Persiapan Sistem
 
 ### 1. Prasyarat Software
 - **Python 3.10+**
@@ -24,7 +24,7 @@ pip install flask flask-cors hvsrpy numpy pandas ollama chromadb geopy matplotli
 
 ---
 
-## 🏃 Cara Menjalankan Aplikasi
+## Cara Menjalankan Aplikasi
 
 1.  Pastikan aplikasi **Ollama** sedang berjalan.
 2.  Buka terminal di folder ini dan jalankan:
@@ -35,7 +35,7 @@ pip install flask flask-cors hvsrpy numpy pandas ollama chromadb geopy matplotli
 
 ---
 
-## 📖 Panduan Penggunaan
+## Panduan Penggunaan
 
 ### 1. Menentukan Lokasi Pengukuran
 - Anda dapat mengklik langsung pada peta interaktif untuk mengisi koordinat secara otomatis.
@@ -56,7 +56,7 @@ Aplikasi memiliki dua mode pemrosesan:
 
 ---
 
-## 📊 Parameter yang Dihasilkan
+## Parameter yang Dihasilkan
 - **f0 (Hz)**: Frekuensi dominan (menunjukkan ketebalan sedimen).
 - **A0**: Faktor amplifikasi.
 - **Kg**: Indeks kerentanan seismik.
@@ -64,7 +64,7 @@ Aplikasi memiliki dua mode pemrosesan:
 
 ---
 
-## 📂 Struktur File Penting
+## Struktur File Penting
 - `app.py`: Backend Flask utama.
 - `index.html`, `style.css`, `script.js`: Frontend aplikasi.
 - `geologihex.csv`: Database pemetaan geologi lokal.
