@@ -31,12 +31,10 @@ os.makedirs(PLOTS_FOLDER, exist_ok=True)
 
 # ChromaDB Setup
 DB_PATH = "./chroma_db"
-# Ensure the client is persistent
 client = chromadb.PersistentClient(path=DB_PATH)
 try:
     collection = client.get_collection(name="geodata")
 except Exception as e:
-    # Handle case where collection might not exist yet (though user implied it does)
     print(f"Warning: Could not get collection 'geodata': {e}")
     collection = None
 
@@ -75,6 +73,25 @@ except Exception as e:
     df_geologi = None
     hex_dict = {}
 
+def nearest_known_hex(hex_code, known_hexes):
+    """Cari warna hex terdekat dari daftar warna yang dikenal (hex_dict).
+    Berguna untuk menangani piksel batas/border yang memiliki warna campuran
+    akibat anti-aliasing pada peta geologi."""
+    def hex_to_rgb(h):
+        h = h.lstrip('#')
+        return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+    
+    target_rgb = hex_to_rgb(hex_code)
+    min_dist = float('inf')
+    closest = None
+    for known_hex in known_hexes:
+        known_rgb = hex_to_rgb(known_hex)
+        dist = sum((a - b) ** 2 for a, b in zip(target_rgb, known_rgb))
+        if dist < min_dist:
+            min_dist = dist
+            closest = known_hex
+    return closest
+
 def get_geologi_info(lon, lat):
     if df_geologi is None or df_geologi.empty:
         return "Data geologi tidak tersedia."
@@ -82,6 +99,13 @@ def get_geologi_info(lon, lat):
     try:
         user_x = float(lon)
         user_y = float(lat)
+        
+        MARGIN = 0.005
+        X_MIN, X_MAX = 107.28468938461052 - MARGIN, 107.51842036039405 + MARGIN
+        Y_MIN, Y_MAX = -7.385047418303269 - MARGIN, -7.21980261226829 + MARGIN
+        
+        if not (X_MIN <= user_x <= X_MAX and Y_MIN <= user_y <= Y_MAX):
+            return "Informasi geologi belum tersedia."
         
         # hitung jarak
         df_geo_copy = df_geologi.copy()
@@ -92,7 +116,18 @@ def get_geologi_info(lon, lat):
         
         # ambil litologi
         hex_code = nearest_point.iloc[0]["hex"]
-        description = hex_dict.get(hex_code, "Tidak diketahui")
+        description = hex_dict.get(hex_code)
+
+        if description is None:
+            # Piksel border/batas: warna campuran akibat anti-aliasing
+            # Cari warna formasi batuan terdekat berdasarkan jarak warna RGB
+            closest_hex = nearest_known_hex(hex_code, hex_dict.keys())
+            if closest_hex:
+                description = hex_dict[closest_hex]
+                print(f"[Border pixel] Hex {hex_code} tidak dikenal, dipetakan ke {closest_hex}")
+            else:
+                description = "Tidak diketahui"
+
         return description
     except Exception as e:
         print(f"Error dalam mengambil data geologi: {e}")
@@ -139,6 +174,7 @@ def hasilinterpretasimikrotremor(f0, a0, kg):
     nilaifo = klasifikasi_f0(f0)
     nilaia0 = klasifikasi_a0(a0)
     nilaikg = klasifikasi_kg(kg)
+    return nilaifo, nilaia0, nilaikg
 
 
 def get_location_name(lat, lon):
@@ -159,8 +195,6 @@ def get_location_name(lat, lon):
         return "Gagal mendapatkan nama lokasi"
 
 def process_microtremor(file_path, plot_filename):
-    # Setup HvsrPy
-    # hvsrpy expects a list of lists of filenames
     fnames = [[file_path]]
 
     preprocessing_settings = hvsrpy.settings.HvsrPreProcessingSettings()
